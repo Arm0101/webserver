@@ -7,16 +7,16 @@
 #include "server.h"
 #include "response.h"
 #include "tools.h"
-
+#include "glob.h"
 #define SERVER_IP "127.0.0.1"
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 4096
 
-char INITIAL_ROUTE[256];
+char INITIAL_ROUTE[1024];
+char _DIR[1024];
 
 
-
-int init_server(unsigned int PORT,const char * route){
+int init_server(unsigned int PORT,const char * initial_route, const char * current_route){
     int server_fd;
     struct sockaddr_in server_addr;
 
@@ -46,7 +46,8 @@ int init_server(unsigned int PORT,const char * route){
     }
 
     //establecer ruta inicial
-    strcpy(INITIAL_ROUTE,route);
+    strcpy(INITIAL_ROUTE,initial_route);
+    strcpy(_DIR,current_route);
 
     printf("Listening in port: %d \n", PORT);
     printf("Serving Directory: %s \n", INITIAL_ROUTE);
@@ -67,13 +68,21 @@ int wait_client(int server_fd){
     return client_fd;
 }
 
-char* get_route(char* req){
-
-    char* token = strtok(req," ");
+char* get_route(const char* req){
+    char* aux = malloc(strlen(req));
+    strcpy(aux,req);
+    char* token = strtok(aux," ");
     token = strtok(NULL, " ");
-    return strdup(token);
+    char *r = strdup(token);
+    free(aux);
+    return r;
 }
-
+int static_file(char * req){
+    if ( strstr(req,"Sec-Fetch-Dest: style") != NULL ||
+         strstr(req,"Sec-Fetch-Dest: image") != NULL)
+         return 1;
+    return 0;
+}   
 
 void handle_request(int client_fd){
 
@@ -82,12 +91,25 @@ void handle_request(int client_fd){
         memset(req,'\0',BUFFER_SIZE);
         
         recv(client_fd, req,sizeof(req),0);
-    
+     
         // //obtener ruta
-        if (!strncmp(req,"GET",3)){
+        if (!strncmp((req),"GET",3)){
             char *relative_route = get_route(req);
             char *route = get_full_route(INITIAL_ROUTE, relative_route);
             int t = type(route);
+
+            //verificar si se piden estilos, imgagenes...
+            if (static_file(req) == 1){
+
+                char* _route = get_full_route(_DIR,relative_route);
+                
+                if (type(_route) != IS_FILE){
+                    resp_not_found(client_fd);
+                    return;
+                }
+                send_file(client_fd,_route);
+                return;
+            }
 
             //verificar si existe el archivo o directorio
             if (t == NOT_EXIST){
@@ -101,13 +123,12 @@ void handle_request(int client_fd){
             }
 
             if (t == IS_FILE){
-                send_file(client_fd,route);
+                send_file(client_fd, route);
+                return;
             }
             if (t == IS_DIR){
                 size_t content_length;
-                send_content(client_fd,relative_route,route,&content_length);
-                //send_response(client_fd,"text/html",content,content_length);
-                
+                send_content(client_fd,relative_route,route,&content_length);                
             }
      
         }

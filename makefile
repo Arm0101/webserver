@@ -1,5 +1,5 @@
 all: server.out
-	clear && ./server.out 1234 /home/arma
+	clear && ./server.out 1234 /home
 server.out: main.o server.o response.o tools.o
 	gcc -o server.out main.o server.o response.o tools.o
 

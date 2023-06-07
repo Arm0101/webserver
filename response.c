@@ -27,12 +27,6 @@ char* get_header(char * status, char* message, char* content_type, size_t conten
     return strdup(header); 
 }
 
-
-void send_response(int client_fd,char* content_type, char* content, size_t content_length){
-    char* header = get_header("200","OK",content_type,content_length,"inline");
-    send(client_fd,header,strlen(header),0);
-    send(client_fd,content,strlen(content),0);
-}
 void resp_not_found(int client_fd){
     char * content;
     size_t content_length;

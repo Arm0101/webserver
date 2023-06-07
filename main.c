@@ -11,6 +11,8 @@ int main(int argc,char** args) {
 
     signal(SIGPIPE,SIG_IGN);
     
+    char current_dir[1024];
+    getcwd(current_dir,1024);
     int port = 1234;
     char* dir = "/home";
     
@@ -24,7 +26,7 @@ int main(int argc,char** args) {
     }
 
     int server_fd ,client_fd;
-    server_fd = init_server(port, dir); //iniciar servidor
+    server_fd = init_server(port, dir, current_dir); //iniciar servidor
     while (1)
     {
         client_fd = wait_client(server_fd); //esperar por conexion del cliente
