@@ -9,6 +9,12 @@
 
 int main(int argc,char** args) {
 
+    //TO DO
+    //MULTIPLES CONEXIONES 
+    //AGREGAR MAS INFO DE LOS DIR
+    //PONER ESTILOS
+
+
     signal(SIGPIPE,SIG_IGN);
     
     char current_dir[1024];
@@ -27,6 +33,10 @@ int main(int argc,char** args) {
 
     int server_fd ,client_fd;
     server_fd = init_server(port, dir, current_dir); //iniciar servidor
+    if (server_fd < 0){
+        printf("Error al iniciar el servidor");
+        return -1;
+    }
     while (1)
     {
         client_fd = wait_client(server_fd); //esperar por conexion del cliente

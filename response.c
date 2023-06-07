@@ -1,9 +1,12 @@
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <dirent.h>
+#include <sys/sendfile.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include "response.h"
 #include "tools.h"
 
@@ -36,6 +39,8 @@ void resp_not_found(int client_fd){
 
     send(client_fd,header,strlen(header),0);
     send(client_fd,content,content_length,0);
+    free(header);
+    free(content);
 }
 
 void resp_forbidden(int client_fd){
@@ -47,12 +52,14 @@ void resp_forbidden(int client_fd){
 
     send(client_fd,header,strlen(header),0);
     send(client_fd,content,content_length,0);
+    free(header);
+    free(content);
 }
 void send_file(int client_fd, const char* route){
  
     //abrir archivo en modo lectura
-    FILE *file = fopen(route,"r");
-    if (file == NULL) {
+    int file = open(route,O_RDONLY);
+    if (file == -1) {
         perror("file: ");
         return NULL;
     }
@@ -64,23 +71,23 @@ void send_file(int client_fd, const char* route){
 
     char* header = get_header("200","OK","application/octet-stream",size,"attachment");
     write(client_fd,header,strlen(header));
-    
-    
-    char buff[2048];
-    memset(buff,'\0', 2048);
-    
-    size_t bytes_read;
-    while ((bytes_read = fread(buff,sizeof(char),2048,file)) > 0){
-        write(client_fd,buff,bytes_read);
+    free(header);
+    size_t chunk_size = 2048*1024;
+    off_t offset = 0;
+    while (offset < size)
+    {
+       size_t to_send = size - offset;
+       if ( to_send > chunk_size) to_send = chunk_size;
+       if (sendfile(client_fd, file, &offset, to_send) == -1)
+        perror("sendfile: ");
     }
-    
     //cerrar el archivo
-    fclose(file);
+    close(file);
 }
 
 
 
-void send_content(int client_fd,const char* relative_route, const char* route, size_t* content_length){
+void send_content(int client_fd,const char* relative_route, const char* route){
     size_t cont_length;
     char* _content = read_file(RESPONSE_FILE,&cont_length);
     
@@ -102,7 +109,6 @@ void send_content(int client_fd,const char* relative_route, const char* route, s
 
     DIR* dir = opendir(route);
     struct dirent *dirp;
-    struct stat info; 
     
     dirp = readdir(dir);
     while (dirp != NULL)
@@ -111,12 +117,17 @@ void send_content(int client_fd,const char* relative_route, const char* route, s
         char* d = fill_table(table, relative_route, route, dirp->d_name,&len);
         //enviar al cliente
         send(client_fd,d,len,0);
+        free(d);
         dirp = readdir(dir);
     }
 
     resp1 = strtok(NULL,"$");
     send(client_fd,resp1,strlen(resp1),0);
- 
+    
+     closedir(dir);
+     free(header);
+     free(table);
+     free(_content);
 }
 
 char* fill_table(const char* table,const char* relative_route,const char* route, const char* name, size_t* size){
@@ -126,6 +137,7 @@ char* fill_table(const char* table,const char* relative_route,const char* route,
     memset(col,'\0',len);
     sprintf(col,table,href,name);
     *size = strlen(col);
+    free(href);
     return strdup(col);
 }
 
@@ -137,9 +149,11 @@ char* get_href(const char* relative_route ,const char *route,const char* name){
     char* aux = get_full_route(route,name);
     if (type(aux) == IS_FILE){
         sprintf(_href, "%s%s",relative_route,name);
+        free(aux);
         return strdup(_href);
     }
 
     sprintf(_href, "%s%s/",relative_route,name);
+    free(aux);
     return strdup(_href);
 }

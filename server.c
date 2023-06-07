@@ -69,13 +69,13 @@ int wait_client(int server_fd){
 }
 
 char* get_route(const char* req){
-    char* aux = malloc(strlen(req));
+    char aux[strlen(req)];
+    memset(aux,'\0',strlen(req));    
     strcpy(aux,req);
     char* token = strtok(aux," ");
     token = strtok(NULL, " ");
-    char *r = strdup(token);
-    free(aux);
-    return r;
+    
+    return strdup(token);
 }
 int static_file(char * req){
     if ( strstr(req,"Sec-Fetch-Dest: style") != NULL ||
@@ -105,30 +105,43 @@ void handle_request(int client_fd){
                 
                 if (type(_route) != IS_FILE){
                     resp_not_found(client_fd);
-                    return;
+                    
+                }else{
+                    send_file(client_fd,_route);
                 }
-                send_file(client_fd,_route);
+                
+                free(route);
+                free(relative_route);
+                free(_route);
+                
                 return;
             }
 
             //verificar si existe el archivo o directorio
             if (t == NOT_EXIST){
                 resp_not_found(client_fd);
+                free(route);
+                free(relative_route);
                 return;
             }
             //verificar permisos
             if (access(route,R_OK) == -1) {
                 resp_forbidden(client_fd);
+                free(route);
+                free(relative_route);
                 return;
             }
 
             if (t == IS_FILE){
                 send_file(client_fd, route);
+                free(route);
+                free(relative_route);
                 return;
             }
             if (t == IS_DIR){
-                size_t content_length;
-                send_content(client_fd,relative_route,route,&content_length);                
+                send_content(client_fd,relative_route,route);  
+                free(route);
+                free(relative_route);             
             }
      
         }

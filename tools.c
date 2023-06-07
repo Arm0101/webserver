@@ -34,7 +34,7 @@ char * read_file (char * route, size_t * length){
     return strdup(buff);
 }
 
-char* get_full_route(char* root,char *rel){
+char* get_full_route(const char* root, const char *rel){
     char route[strlen(root) + strlen(rel)];
     sprintf(route,"%s%s",root,rel);
     return strdup(route);
