@@ -79,7 +79,8 @@ char* get_route(const char* req){
 }
 int static_file(char * req){
     if ( strstr(req,"Sec-Fetch-Dest: style") != NULL ||
-         strstr(req,"Sec-Fetch-Dest: image") != NULL)
+         strstr(req,"Sec-Fetch-Dest: image") != NULL ||
+         strstr(req,"Sec-Fetch-Dest: script") !=NULL)
          return 1;
     return 0;
 }   

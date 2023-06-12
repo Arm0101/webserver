@@ -1,3 +1,24 @@
-body{
-    color: blue;
-}
+a {
+    outline: none;
+    text-decoration: none;
+    padding: 2px 2px 0;
+    color: #437A16;
+  }
+
+  a:visited {
+    color: #437A16;
+  }
+  
+  a:hover {
+    text-decoration: none;
+    background: #CDFEAA;
+  }
+  
+  a:active {
+    background: #265301;
+    color: #CDFEAA;
+  }
+
+  th, td{
+    text-align: left;
+  }
